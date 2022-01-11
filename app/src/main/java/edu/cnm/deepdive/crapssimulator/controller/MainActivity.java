@@ -30,13 +30,12 @@ import edu.cnm.deepdive.crapssimulator.databinding.ActivityMainBinding;
 public class MainActivity extends AppCompatActivity {
 
   private AppBarConfiguration appBarConfig;
-  private ActivityMainBinding binding;
   private NavController navController;
 
   @Override
   protected void onCreate(Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
-    binding = ActivityMainBinding.inflate(getLayoutInflater());
+    ActivityMainBinding binding = ActivityMainBinding.inflate(getLayoutInflater());
     setContentView(binding.getRoot());
     navController = Navigation.findNavController(this, R.id.nav_host_fragment);
     appBarConfig = new AppBarConfiguration.Builder(navController.getGraph()).build();

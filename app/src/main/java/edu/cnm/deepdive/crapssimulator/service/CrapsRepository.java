@@ -39,10 +39,10 @@ public class CrapsRepository {
 
   private static final long SLEEP_INTERVAL = 100;
 
+  private final ScheduledExecutorService executor;
   private final Scheduler scheduler;
   private final Round round;
 
-  private ScheduledExecutorService executor;
   private ScheduledFuture<?> future;
   private long wins;
   private long losses;
@@ -55,6 +55,7 @@ public class CrapsRepository {
    */
   public CrapsRepository() {
     Random rng = new JDKRandomBridge(RandomSource.XO_RO_SHI_RO_128_PP, null);
+    executor = Executors.newSingleThreadScheduledExecutor();
     scheduler = Schedulers.single();
     round = new Round(rng);
   }
@@ -82,7 +83,6 @@ public class CrapsRepository {
   public Flowable<Snapshot> getSnapshots() {
     return Flowable
         .create((FlowableEmitter<Snapshot> emitter) -> {
-          executor = Executors.newSingleThreadScheduledExecutor();
           future = executor.scheduleWithFixedDelay(() -> {
             if (!emitter.isCancelled()) {
               while (!emitter.isCancelled() && runningFast) {

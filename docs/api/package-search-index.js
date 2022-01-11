@@ -1,1 +1,0 @@
-packageSearchIndex = [{"l":"All Packages","url":"allpackages-index.html"},{"l":"edu.cnm.deepdive.crapssimulator.adapter"},{"l":"edu.cnm.deepdive.crapssimulator.controller"},{"l":"edu.cnm.deepdive.crapssimulator.model"},{"l":"edu.cnm.deepdive.crapssimulator.service"},{"l":"edu.cnm.deepdive.crapssimulator.viewmodel"}]
