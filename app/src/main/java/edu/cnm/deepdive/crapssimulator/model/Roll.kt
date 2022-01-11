@@ -25,7 +25,9 @@ import java.util.stream.IntStream
  */
 class Roll(rng: Random, numDice: Int, numSides: Int) {
 
-    private val dice: IntArray
+    private val _dice: IntArray
+    val dice: IntArray
+        get() = _dice.copyOf(_dice.size)
 
     /**
      * Returns the sum of dice values in this `Roll`.
@@ -43,21 +45,13 @@ class Roll(rng: Random, numDice: Int, numSides: Int) {
      * @param numSides Number of sides on each die.
      */
     init {
-        dice = IntStream
+        _dice = IntStream
             .generate { 1 + rng.nextInt(numSides) }
             .limit(numDice.toLong())
             .toArray()
         value = IntStream
-            .of(*dice)
+            .of(*_dice)
             .sum()
     }
 
-    /**
-     * Returns a safe copy of the dice values in this `Roll`.
-     *
-     * @return `int[]`
-     */
-    fun getDice(): IntArray {
-        return dice.copyOf(dice.size)
-    }
 }
