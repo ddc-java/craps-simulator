@@ -13,188 +13,139 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  */
-package edu.cnm.deepdive.crapssimulator.model;
+package edu.cnm.deepdive.crapssimulator.model
 
-import java.util.Collections;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Random;
+import java.util.*
 
 /**
  * Encapsulates a single round of the Craps shooter's play. No wagering actions or outcomes are
- * included in this representation, but only one or more rolls&mdash;from the come-out roll to the
+ * included in this representation, but only one or more rollsfrom the come-out roll to the
  * final win or loss outcome.
  */
-public class Round {
+class Round(private val rng: Random) {
 
-  private static final int NUM_DICE = 2;
-  private static final int NUM_SIDES = 6;
-
-  private final Random rng;
-  private final List<Roll> rolls;
-
-  private State state;
-  private boolean win;
-
-  /**
-   * Initializes this instance with the specified source of randomness.
-   *
-   * @param rng Instance of {@link Random} from which random numbers are sampled.
-   */
-  public Round(Random rng) {
-    this.rng = rng;
-    rolls = new LinkedList<>();
-  }
-
-  /**
-   * Plays a complete round of Craps, starting with the come-out roll and including as many rolls as
-   * necessary to arrive at a win or loss. Since the rules of Craps don't allow for any decisions by
-   * the shooter after the round begins, all rolls are executed by this method without interruption.
-   *
-   * @return Flag indicating whether this instance has completed with a win.
-   */
-  public boolean play() {
-    rolls.clear();
-    state = State.initial();
-    win = false;
-    int point = 0;
-    boolean firstRoll = true;
-    do {
-      Roll roll = new Roll(rng, NUM_DICE, NUM_SIDES);
-      state = state.next(roll, point);
-      if (firstRoll) {
-        if (state == State.POINT) {
-          point = roll.getValue();
-        }
-        firstRoll = false;
-      }
-      rolls.add(roll);
-    } while (!state.isTerminal());
-    win = (state == State.WIN);
-    return win;
-  }
-
-  /**
-   * Returns a copy of the {@link List List&lt;Roll&gt;} rolled so far in this instance.
-   *
-   * @return {@link List List&lt;Roll&gt;}
-   */
-  public List<Roll> getRolls() {
-    return Collections.unmodifiableList(rolls);
-  }
-
-  /**
-   * Returns the current {@link State} of this instance.
-   *
-   * @return {@link State}
-   */
-  public State getState() {
-    return state;
-  }
-
-  /**
-   * Returns a flag indicating whether the current {@code Round} instance has terminated in a win.
-   *
-   * @return {@code boolean}
-   */
-  public boolean isWin() {
-    return win;
-  }
-
-  /**
-   * Enumerates the high-level states of a round of play in Craps.
-   */
-  public enum State {
-    /** Awaiting initial roll. */
-    COME_OUT {
-
-      @Override
-      protected boolean isTerminal() {
-        return false;
-      }
-
-      @Override
-      protected State next(Roll roll, int ignoredPoint) {
-        State state;
-        switch (roll.getValue()) {
-          case 2:
-          case 3:
-          case 12:
-            state = LOSS;
-            break;
-          case 7:
-          case 11:
-            state = WIN;
-            break;
-          default:
-            state = POINT;
-            break;
-        }
-        return state;
-      }
-
-    },
-    /** Point established in initial roll; awaiting win (roll of the same point) or loss (roll of 7). */
-    POINT {
-
-      @Override
-      protected boolean isTerminal() {
-        return false;
-      }
-
-      @Override
-      protected State next(Roll roll, int point) {
-        State state;
-        int value = roll.getValue();
-        if (value == point) {
-          state = WIN;
-        } else if (value == 7) {
-          state = LOSS;
-        } else {
-          state = this;
-        }
-        return state;
-      }
-
-    },
-    /** Round won by rolling a natural (7 or 11) in the come-out roll, or by making the point established in that roll. */
-    WIN,
-    /** Round lost by rolling a 2, 3, or 12 in the come-out roll, or by rolling 7 before rolling the point established in that roll. */
-    LOSS;
+    private val _rolls: MutableList<Roll> = LinkedList()
+    val rolls: MutableList<Roll>
+        get() = Collections.unmodifiableList(_rolls)
 
     /**
-     * Returns the initial state ({@link #COME_OUT}) of a round of play in Craps.
+     * Returns the current [State] of this instance.
      *
-     * @return {@link State}
+     * @return [State]
      */
-    public static State initial() {
-      return COME_OUT;
+    var state: State = State.initial()
+        private set
+
+    /**
+     * Returns a flag indicating whether the current `Round` instance has terminated in a win.
+     *
+     * @return `boolean`
+     */
+    var win = false
+        private set
+
+    /**
+     * Plays a complete round of Craps, starting with the come-out roll and including as many rolls as
+     * necessary to arrive at a win or loss. Since the rules of Craps don't allow for any decisions by
+     * the shooter after the round begins, all rolls are executed by this method without interruption.
+     *
+     * @return Flag indicating whether this instance has completed with a win.
+     */
+    fun play(): Boolean {
+        _rolls.clear()
+        state = State.initial()
+        win = false
+        var point = 0
+        var firstRoll = true
+        do {
+            val roll = Roll(rng, NUM_DICE, NUM_SIDES)
+            state = state.next(roll, point)
+            if (firstRoll) {
+                if (state === State.POINT) {
+                    point = roll.value
+                }
+                firstRoll = false
+            }
+            _rolls.add(roll)
+        } while (!state.isTerminal)
+        win = state === State.WIN
+        return win
     }
 
     /**
-     * Returns a flag indicating whether the current {@code State} instance is a terminal state,
-     * with no further rolls allowed.
-     *
-     * @return {@code boolean}
+     * Enumerates the high-level states of a round of play in Craps.
      */
-    @SuppressWarnings("BooleanMethodIsAlwaysInverted")
-    protected boolean isTerminal() {
-      return true;
+    enum class State {
+        /** Awaiting initial roll.  */
+        COME_OUT {
+            override val isTerminal = false
+
+            override fun next(roll: Roll, point: Int): State {
+                return when (roll.value) {
+                    2, 3, 12 -> LOSS
+                    7, 11 -> WIN
+                    else -> POINT
+                }
+            }
+        },
+
+        /** Point established in initial roll; awaiting win (roll of the same point) or loss (roll of 7).  */
+        POINT {
+            override val isTerminal = false
+
+            override fun next(roll: Roll, point: Int): State {
+                return when (roll.value) {
+                    point -> WIN
+                    7 -> LOSS
+                    else -> this
+                }
+            }
+        },
+
+        /** Round won by rolling a natural (7 or 11) in the come-out roll, or by making the point established in that roll.  */
+        WIN,
+
+        /** Round lost by rolling a 2, 3, or 12 in the come-out roll, or by rolling 7 before rolling the point established in that roll.  */
+        LOSS;
+
+        /**
+         * Returns a flag indicating whether the current `State` instance is a terminal state,
+         * with no further rolls allowed.
+         *
+         * @return `boolean`
+         */
+        open val isTerminal = true
+
+        /**
+         * Computes the next `State` instance, based on the current instance, the point previously
+         * established (if any), and the current [Roll].
+         *
+         * @param roll Current [Roll].
+         * @param point Previously established point; ignored unless the current instance is [.POINT].
+         * @return Next `State` instance.
+         * @throws IllegalStateException If invoked after this instance is already in a terminal state.
+         */
+        @Throws(IllegalStateException::class)
+        open fun next(roll: Roll, point: Int): State {
+            throw IllegalStateException()
+        }
+
+        companion object {
+            /**
+             * Returns the initial state ([.COME_OUT]) of a round of play in Craps.
+             *
+             * @return [State]
+             */
+            @JvmStatic
+            fun initial(): State {
+                return COME_OUT
+            }
+        }
     }
 
-    /**
-     * Computes the next {@code State} instance, based on the current instance, the point previously
-     * established (if any), and the current {@link Roll}.
-     *
-     * @param roll Current {@link Roll}.
-     * @param point Previously established point; ignored unless the current instance is {@link #POINT}.
-     * @return Next {@code State} instance.
-     * @throws IllegalStateException If invoked after this instance is already in a terminal state.
-     */
-    protected State next(Roll roll, int point) throws IllegalStateException {
-      throw new IllegalStateException();
+    companion object {
+        private const val NUM_DICE = 2
+        private const val NUM_SIDES = 6
     }
-
-  }
 
 }

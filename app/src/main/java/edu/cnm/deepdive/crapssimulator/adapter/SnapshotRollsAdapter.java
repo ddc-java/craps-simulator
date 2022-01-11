@@ -73,7 +73,7 @@ public class SnapshotRollsAdapter extends RecyclerView.Adapter<Holder> {
     winColor = ContextCompat.getColor(context, R.color.win_color);
     lossColor = ContextCompat.getColor(context, R.color.loss_color);
     rolls = snapshot.getRolls();
-    win = snapshot.isWin();
+    win = snapshot.getWin();
   }
 
   @NonNull

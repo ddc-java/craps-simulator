@@ -13,109 +13,58 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  */
-package edu.cnm.deepdive.crapssimulator.model;
+package edu.cnm.deepdive.crapssimulator.model
 
-import edu.cnm.deepdive.crapssimulator.model.Round.State;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
+import java.util.*
 
 /**
  * Encapsulates a snapshot in some moment of a sequence of Craps rounds. No wagering actions or
  * outcomes are included in this snapshot; only the tally of wins and losses, along with the
- * sequence of {@link Roll} instances recorded in the most recent {@link Round}, are included.
- * <p>As might be inferred from the name, instances of this class are immutable.</p>
+ * sequence of [Roll] instances recorded in the most recent [Round], are included.
+ *
+ * As might be inferred from the name, instances of this class are immutable.
  */
-public final class Snapshot {
+class Snapshot(round: Round? = null, val wins: Long = 0, private val losses: Long = 0) {
+    /**
+     * Returns the [List&amp;lt;Roll&amp;gt;][List] from the most recently completed (when this `Snapshot` instance was created) [Round].
+     *
+     * @return [List&amp;lt;Roll&amp;gt;][List]
+     */
+    val rolls: List<Roll>
 
-  private final List<Roll> rolls;
-  private final long wins;
-  private final long losses;
-  private final State state;
-  private final boolean win;
+    /**
+     * Returns the [State] of the most recent [Round] included in this snapshot.
+     *
+     * @return [State]
+     */
+    val state: Round.State
 
-  /**
-   * Initializes this instance to represent the start of a sequence of rounds, before any rolls take
-   * place.
-   */
-  public Snapshot() {
-    rolls = Collections.emptyList();
-    wins = 0;
-    losses = 0;
-    state = Round.State.initial();
-    win = false;
-  }
+    /**
+     * Returns a flag indicating whether the most recent [Round] terminated in the [ ][State.WIN] state.
+     *
+     * @return `boolean`
+     */
+    val win: Boolean
 
-  /**
-   * Initializes this instance to encapsulate the {@link List List&lt;Roll&gt;} from the specified
-   * {@link Round}, and long with the specified tally of wins and losses.
-   *
-   * @param round A single {@link Round}&mdash;presumably the most recently completed.
-   * @param wins Tally of wins.
-   * @param losses Tally of losses.
-   */
-  public Snapshot(Round round, long wins, long losses) {
-    rolls = new ArrayList<>(round.getRolls());
-    this.wins = wins;
-    this.losses = losses;
-    state = round.getState();
-    win = round.isWin();
-  }
+    /**
+     * Initializes this instance to encapsulate the [List&amp;lt;Roll&amp;gt;][List] from the specified
+     * [Round], and long with the specified tally of wins and losses.
+     *
+     * @param round A single [Round]presumably the most recently completed.
+     * @param wins Tally of wins.
+     * @param losses Tally of losses.
+     */
+    init {
+        rolls = ArrayList(round?.rolls ?: Collections.emptyList())
+        state = round?.state ?: Round.State.initial()
+        win = round?.win ?: false
+    }
 
-  /**
-   * Returns the {@link List List&lt;Roll&gt;} from the most recently completed (when this {@code
-   * Snapshot} instance was created) {@link Round}.
-   *
-   * @return {@link List List&lt;Roll&gt;}
-   */
-  public List<Roll> getRolls() {
-    return rolls;
-  }
-
-  /**
-   * Returns the tally of wins in this snapshot.
-   *
-   * @return {@code long}
-   */
-  public long getWins() {
-    return wins;
-  }
-
-  /**
-   * Returns the tally of losses in this snapshot.
-   *
-   * @return {@code long}
-   */
-  public long getLosses() {
-    return losses;
-  }
-
-  /**
-   * Returns the total number of plays (wins + losses) in this snapshot.
-   *
-   * @return {@code long}
-   */
-  public long getRounds() {
-    return wins + losses;
-  }
-
-  /**
-   * Returns the {@link State} of the most recent {@link Round} included in this snapshot.
-   *
-   * @return {@link State}
-   */
-  public State getState() {
-    return state;
-  }
-
-  /**
-   * Returns a flag indicating whether the most recent {@link Round} terminated in the {@link
-   * State#WIN} state.
-   *
-   * @return {@code boolean}
-   */
-  public boolean isWin() {
-    return win;
-  }
-
+    /**
+     * Returns the total number of plays (wins + losses) in this snapshot.
+     *
+     * @return `long`
+     */
+    val rounds: Long
+        get() = wins + losses
 }
