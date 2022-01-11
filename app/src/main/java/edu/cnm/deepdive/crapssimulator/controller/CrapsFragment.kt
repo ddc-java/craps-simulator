@@ -13,150 +13,138 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  */
-package edu.cnm.deepdive.crapssimulator.controller;
+package edu.cnm.deepdive.crapssimulator.controller
 
-import android.content.res.Resources;
-import android.os.Bundle;
-import android.view.LayoutInflater;
-import android.view.Menu;
-import android.view.MenuInflater;
-import android.view.MenuItem;
-import android.view.View;
-import android.view.ViewGroup;
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
-import androidx.fragment.app.Fragment;
-import androidx.lifecycle.LifecycleOwner;
-import androidx.lifecycle.ViewModelProvider;
-import androidx.navigation.Navigation;
-import com.google.android.material.snackbar.Snackbar;
-import edu.cnm.deepdive.crapssimulator.R;
-import edu.cnm.deepdive.crapssimulator.adapter.SnapshotRollsAdapter;
-import edu.cnm.deepdive.crapssimulator.databinding.FragmentCrapsBinding;
-import edu.cnm.deepdive.crapssimulator.model.Snapshot;
-import edu.cnm.deepdive.crapssimulator.viewmodel.CrapsViewModel;
-import java.util.HashMap;
-import java.util.Map;
+import android.os.Bundle
+import android.view.*
+import androidx.fragment.app.Fragment
+import androidx.lifecycle.ViewModelProvider
+import androidx.navigation.Navigation
+import com.google.android.material.snackbar.Snackbar
+import edu.cnm.deepdive.crapssimulator.R
+import edu.cnm.deepdive.crapssimulator.adapter.SnapshotRollsAdapter
+import edu.cnm.deepdive.crapssimulator.databinding.FragmentCrapsBinding
+import edu.cnm.deepdive.crapssimulator.model.Snapshot
+import edu.cnm.deepdive.crapssimulator.viewmodel.CrapsViewModel
 
 /**
  * Handles presentation of, and user interaction with, a display of the current tally of wins and
  * losses; the rolls and outcome of most recent round of play; and controls to start, stop, and
  * reset the simulation.
  */
-public class CrapsFragment extends Fragment {
+class CrapsFragment : Fragment() {
 
-  private final Map<Integer, Runnable> actions = new HashMap<>();
+    private val actions: MutableMap<Int, Runnable> = HashMap()
+    private var binding: FragmentCrapsBinding? = null
+    private lateinit var viewModel: CrapsViewModel
+    private var running = false
+    private lateinit var summaryFormat: String
+    private lateinit var errorMessageFormat: String
 
-  private FragmentCrapsBinding binding;
-  private CrapsViewModel viewModel;
-  private boolean running;
-  private String summaryFormat;
-  private String errorMessageFormat;
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setHasOptionsMenu(true)
+    }
 
-  @Override
-  public void onCreate(@Nullable Bundle savedInstanceState) {
-    super.onCreate(savedInstanceState);
-    setHasOptionsMenu(true);
-  }
+    override fun onCreateView(
+            inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
+        binding = FragmentCrapsBinding.inflate(inflater, container, false)
+        summaryFormat = getString(R.string.summary_format)
+        errorMessageFormat = getString(R.string.error_message_format)
+        return binding?.root
+    }
 
-  @Override
-  public View onCreateView(
-      @NonNull LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
-    binding = FragmentCrapsBinding.inflate(inflater, container, false);
-    summaryFormat = getString(R.string.summary_format);
-    errorMessageFormat = getString(R.string.error_message_format);
-    return binding.getRoot();
-  }
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+        viewModel = ViewModelProvider(this).get(CrapsViewModel::class.java).apply {
+            lifecycle.addObserver(this)
+            val owner = viewLifecycleOwner
+            snapshot.observe(owner) { updateDisplay(it) }
+            running.observe(owner) { setRunning(it) }
+            throwable.observe(owner) { showError(it) }
+        }
+        buildMenuActionsMap()
+    }
 
-  @Override
-  public void onViewCreated(@NonNull View view, Bundle savedInstanceState) {
-    super.onViewCreated(view, savedInstanceState);
-    viewModel = new ViewModelProvider(this).get(CrapsViewModel.class);
-    getLifecycle().addObserver(viewModel);
-    LifecycleOwner owner = getViewLifecycleOwner();
-    viewModel.getSnapshot().observe(owner, this::updateDisplay);
-    viewModel.getRunning().observe(owner, this::setRunning);
-    viewModel.getThrowable().observe(owner, this::showError);
-    buildMenuActionsMap();
-  }
+    override fun onCreateOptionsMenu(menu: Menu, inflater: MenuInflater) {
+        super.onCreateOptionsMenu(menu, inflater)
+        inflater.inflate(R.menu.menu_main, menu)
+    }
 
-  @Override
-  public void onCreateOptionsMenu(@NonNull Menu menu, @NonNull MenuInflater inflater) {
-    super.onCreateOptionsMenu(menu, inflater);
-    inflater.inflate(R.menu.menu_main, menu);
-  }
+    override fun onPrepareOptionsMenu(menu: Menu) {
+        with(menu) {
+            super.onPrepareOptionsMenu(this)
+            findItem(R.id.action_play_once).isVisible = !running
+            findItem(R.id.action_play_fast).isVisible = !running
+            findItem(R.id.action_pause).isVisible = running
+            findItem(R.id.action_reset).isVisible = !running
+        }
+    }
 
-  @Override
-  public void onPrepareOptionsMenu(@NonNull Menu menu) {
-    super.onPrepareOptionsMenu(menu);
-    menu.findItem(R.id.action_play_once).setVisible(!running);
-    menu.findItem(R.id.action_play_fast).setVisible(!running);
-    menu.findItem(R.id.action_pause).setVisible(running);
-    menu.findItem(R.id.action_reset).setVisible(!running);
-  }
+    override fun onOptionsItemSelected(item: MenuItem): Boolean {
+        val handled = booleanArrayOf(true)
+        actions
+                .getOrDefault(item.itemId, Runnable { handled[0] = super.onOptionsItemSelected(item) })
+                .run()
+        return handled[0]
+    }
 
-  @Override
-  public boolean onOptionsItemSelected(@NonNull MenuItem item) {
-    boolean[] handled = {true};
-    //noinspection ConstantConditions
-    actions
-        .getOrDefault(item.getItemId(), () -> handled[0] = super.onOptionsItemSelected(item))
-        .run();
-    return handled[0];
-  }
+    override fun onDestroyView() {
+        super.onDestroyView()
+        binding = null
+    }
 
-  @Override
-  public void onDestroyView() {
-    super.onDestroyView();
-    binding = null;
-  }
+    private fun updateDisplay(snapshot: Snapshot) {
+        val wins = snapshot.wins
+        val rounds = snapshot.rounds
+        val winningPercentage = if (rounds > 0) 100.0 * wins / rounds else 0.toDouble()
+        val resources = resources
+        val winQuantity = resources.getQuantityString(R.plurals.win_quantity, wins.toInt())
+        val roundQuantity = resources.getQuantityString(R.plurals.round_quantity, rounds.toInt())
+        val adapter = SnapshotRollsAdapter(context, snapshot)
+        binding?.let {
+            it.summary.text = String.format(summaryFormat, wins, winQuantity, rounds, roundQuantity, winningPercentage)
+            it.rolls.adapter = adapter
+        }
+    }
 
-  private void updateDisplay(Snapshot snapshot) {
-    long wins = snapshot.getWins();
-    long rounds = snapshot.getRounds();
-    double winningPercentage = (rounds > 0) ? (100.0 * wins / rounds) : 0;
-    Resources resources = getResources();
-    String winQuantity = resources.getQuantityString(R.plurals.win_quantity, (int) wins);
-    String roundQuantity = resources.getQuantityString(R.plurals.round_quantity, (int) rounds);
-    binding.summary.setText(
-        String.format(summaryFormat, wins, winQuantity, rounds, roundQuantity, winningPercentage));
-    SnapshotRollsAdapter adapter = new SnapshotRollsAdapter(getContext(), snapshot);
-    binding.rolls.setAdapter(adapter);
-  }
+    private fun showError(throwable: Throwable) {
+        binding?.let {
+            Snackbar
+                    .make(it.root, String.format(errorMessageFormat, throwable.message),
+                            Snackbar.LENGTH_LONG)
+                    .show()
+        }
+    }
 
-  private void showError(Throwable throwable) {
-    Snackbar
-        .make(binding.getRoot(), String.format(errorMessageFormat, throwable.getMessage()),
-            Snackbar.LENGTH_LONG)
-        .show();
-  }
+    private fun buildMenuActionsMap() {
+        with(actions) {
+            clear()
+            put(R.id.action_play_once) { viewModel.runOnce() }
+            put(R.id.action_play_fast) { viewModel.runFast() }
+            put(R.id.action_pause) { viewModel.stop() }
+            put(R.id.action_reset) { viewModel.reset() }
+            put(R.id.action_settings) { openSettings() }
+            put(R.id.action_about) { openAbout() }
+        }
+    }
 
-  private void buildMenuActionsMap() {
-    actions.clear();
-    actions.put(R.id.action_play_once, viewModel::runOnce);
-    actions.put(R.id.action_play_fast, viewModel::runFast);
-    actions.put(R.id.action_pause, viewModel::stop);
-    actions.put(R.id.action_reset, viewModel::reset);
-    actions.put(R.id.action_settings, this::openSettings);
-    actions.put(R.id.action_about, this::openAbout);
-  }
+    private fun setRunning(running: Boolean) {
+        this.running = running
+        activity!!.invalidateOptionsMenu()
+    }
 
-  private void setRunning(boolean running) {
-    this.running = running;
-    //noinspection ConstantConditions
-    getActivity().invalidateOptionsMenu();
-  }
+    private fun openSettings() {
+        binding?.let {
+            Navigation
+                    .findNavController(it.root)
+                    .navigate(CrapsFragmentDirections.openSettings())
+        }
+    }
 
-  private void openSettings() {
-    Navigation
-        .findNavController(binding.getRoot())
-        .navigate(CrapsFragmentDirections.openSettings());
-  }
-
-  private void openAbout() {
-    Navigation
-        .findNavController(binding.getRoot())
-        .navigate(CrapsFragmentDirections.openAbout());
-  }
-
+    private fun openAbout() {
+        Navigation
+                .findNavController(binding!!.root)
+                .navigate(CrapsFragmentDirections.openAbout())
+    }
 }

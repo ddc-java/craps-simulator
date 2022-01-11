@@ -16,6 +16,7 @@
 plugins {
     id 'com.android.application'
     id 'androidx.navigation.safeargs'
+    id 'kotlin-android'
 }
 
 android {
@@ -55,6 +56,10 @@ android {
 }
 
 dependencies {
+
+    // Core Kotlin libraries
+    implementation 'androidx.core:core-ktx:1.7.0'
+    implementation "org.jetbrains.kotlin:kotlin-stdlib:$kotlinVersion"
 
     // Basic Android support libraries
     implementation 'androidx.appcompat:appcompat:1.4.0'
