@@ -13,46 +13,41 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  */
-package edu.cnm.deepdive.crapssimulator.controller;
+package edu.cnm.deepdive.crapssimulator.controller
 
-import android.content.res.Resources;
-import android.os.Bundle;
-import android.view.LayoutInflater;
-import android.view.View;
-import android.view.ViewGroup;
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
-import androidx.fragment.app.Fragment;
-import edu.cnm.deepdive.crapssimulator.R;
-import edu.cnm.deepdive.crapssimulator.databinding.FragmentAboutBinding;
-import io.noties.markwon.Markwon;
-import java.io.IOException;
-import java.io.InputStream;
-import java.nio.charset.Charset;
-import org.apache.commons.io.IOUtils;
+import android.content.Context
+import android.os.Bundle
+import android.view.LayoutInflater
+import android.view.View
+import android.view.ViewGroup
+import androidx.fragment.app.Fragment
+import edu.cnm.deepdive.crapssimulator.R
+import edu.cnm.deepdive.crapssimulator.databinding.FragmentAboutBinding
+import io.noties.markwon.Markwon
+import org.apache.commons.io.IOUtils
+import java.nio.charset.Charset
 
 /**
- * Displays an {@link android.widget.TextView TextView} containing credits, copyrights, and license
+ * Displays a [TextView][android.widget.TextView] containing credits, copyrights, and license
  * information for the app and the supporting libraries.
  */
-public class AboutFragment extends Fragment {
+class AboutFragment : Fragment() {
 
-  @SuppressWarnings("ConstantConditions")
-  @Nullable
-  @Override
-  public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container,
-      @Nullable Bundle savedInstanceState) {
-    Resources resources = getContext().getResources();
-    try (InputStream input = resources.openRawResource(R.raw.about)) {
-      String markdown = IOUtils.toString(input, Charset.defaultCharset());
-      FragmentAboutBinding binding = FragmentAboutBinding.inflate(inflater, container, false);
-      Markwon
-          .create(getContext())
-          .setMarkdown(binding.getRoot(), markdown);
-      return binding.getRoot();
-    } catch (IOException e) {
-      throw new RuntimeException(e);
+    override fun onCreateView(
+        inflater: LayoutInflater, container: ViewGroup?,
+        savedInstanceState: Bundle?
+    ): View {
+        context!!.let {ctx: Context ->
+            with(ctx.resources) {
+                openRawResource(R.raw.about).use { input ->
+                    val markdown = IOUtils.toString(input, Charset.defaultCharset())
+                    val binding = FragmentAboutBinding.inflate(inflater, container, false)
+                    Markwon
+                        .create(ctx)
+                        .setMarkdown(binding.root, markdown)
+                    return binding.root
+                }
+            }
+        }
     }
-  }
-
 }

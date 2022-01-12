@@ -35,7 +35,9 @@ import edu.cnm.deepdive.crapssimulator.viewmodel.CrapsViewModel
 class CrapsFragment : Fragment() {
 
     private val actions: MutableMap<Int, Runnable> = HashMap()
-    private var binding: FragmentCrapsBinding? = null
+    private var _binding: FragmentCrapsBinding? = null
+    private val binding: FragmentCrapsBinding
+        get() = _binding!!
     private var running = false
     private lateinit var viewModel: CrapsViewModel
     private lateinit var summaryFormat: String
@@ -47,23 +49,26 @@ class CrapsFragment : Fragment() {
     }
 
     override fun onCreateView(
-            inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
+        inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
+    ): View {
         summaryFormat = getString(R.string.summary_format)
         errorMessageFormat = getString(R.string.error_message_format)
         return FragmentCrapsBinding.inflate(inflater, container, false)
-            .also { binding = it }
+            .also { _binding = it }
             .root
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        viewModel = ViewModelProvider(this).get(CrapsViewModel::class.java).apply {
-            val owner = viewLifecycleOwner
-            lifecycle.addObserver(this)
-            snapshot.observe(owner) { updateDisplay(it) }
-            running.observe(owner) { setRunning(it) }
-            throwable.observe(owner) { showError(it) }
-        }
+        viewModel = ViewModelProvider(this)
+            .get(CrapsViewModel::class.java)
+            .apply {
+                val owner = viewLifecycleOwner
+                lifecycle.addObserver(this)
+                snapshot.observe(owner) { updateDisplay(it) }
+                running.observe(owner) { setRunning(it) }
+                throwable.observe(owner) { showError(it) }
+            }
         buildMenuActionsMap()
     }
 
@@ -86,14 +91,14 @@ class CrapsFragment : Fragment() {
         val handled = booleanArrayOf(true)
         @Suppress("MoveLambdaOutsideParentheses")
         actions
-                .getOrDefault(item.itemId, { handled[0] = super.onOptionsItemSelected(item) })
-                .run()
+            .getOrDefault(item.itemId, { handled[0] = super.onOptionsItemSelected(item) })
+            .run()
         return handled[0]
     }
 
     override fun onDestroyView() {
         super.onDestroyView()
-        binding = null
+        _binding = null
     }
 
     private fun updateDisplay(snapshot: Snapshot) {
@@ -103,34 +108,40 @@ class CrapsFragment : Fragment() {
         val resources = resources
         val winQuantity = resources.getQuantityString(R.plurals.win_quantity, wins.toInt())
         val roundQuantity = resources.getQuantityString(R.plurals.round_quantity, rounds.toInt())
-        val adapter = SnapshotRollsAdapter(context, snapshot)
-        binding!!.let {
-            it.summary.text = String.format(
+        val adapter = SnapshotRollsAdapter(context!!, snapshot)
+        with(binding) {
+            summary.text = String.format(
                 summaryFormat,
                 wins, winQuantity, rounds, roundQuantity, winningPercentage
             )
-            it.rolls.adapter = adapter
+            rolls.adapter = adapter
         }
     }
 
     private fun showError(throwable: Throwable) {
-        binding!!.let {
+        binding.let {
             Snackbar
-                    .make(it.root, String.format(errorMessageFormat, throwable.message),
-                            Snackbar.LENGTH_LONG)
-                    .show()
+                .make(
+                    it.root, String.format(errorMessageFormat, throwable.message),
+                    Snackbar.LENGTH_LONG
+                )
+                .show()
         }
     }
 
     private fun buildMenuActionsMap() {
         with(actions) {
             clear()
-            put(R.id.action_play_once) { viewModel.runOnce() }
-            put(R.id.action_play_fast) { viewModel.runFast() }
-            put(R.id.action_pause) { viewModel.stop() }
-            put(R.id.action_reset) { viewModel.reset() }
-            put(R.id.action_settings) { openSettings() }
-            put(R.id.action_about) { openAbout() }
+            putAll(
+                arrayOf(
+                    Pair(R.id.action_play_once, Runnable { viewModel.runOnce() }),
+                    Pair(R.id.action_play_fast, Runnable { viewModel.runFast() }),
+                    Pair(R.id.action_pause, Runnable { viewModel.stop() }),
+                    Pair(R.id.action_reset, Runnable { viewModel.reset() }),
+                    Pair(R.id.action_settings, Runnable { openSettings() }),
+                    Pair(R.id.action_about, Runnable { openAbout() })
+                )
+            )
         }
     }
 
@@ -140,19 +151,15 @@ class CrapsFragment : Fragment() {
     }
 
     private fun openSettings() {
-        binding!!.let {
-            Navigation
-                    .findNavController(it.root)
-                    .navigate(CrapsFragmentDirections.openSettings())
-        }
+        Navigation
+            .findNavController(binding.root)
+            .navigate(CrapsFragmentDirections.openSettings())
     }
 
     private fun openAbout() {
-        binding!!.let {
-            Navigation
-                .findNavController(it.root)
-                .navigate(CrapsFragmentDirections.openAbout())
-        }
+        Navigation
+            .findNavController(binding.root)
+            .navigate(CrapsFragmentDirections.openAbout())
     }
 
 }

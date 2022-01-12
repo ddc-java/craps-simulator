@@ -13,38 +13,41 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  */
-package edu.cnm.deepdive.crapssimulator.controller;
+package edu.cnm.deepdive.crapssimulator.controller
 
-import android.os.Bundle;
-import androidx.preference.Preference;
-import androidx.preference.PreferenceFragmentCompat;
-import androidx.preference.SeekBarPreference;
-import edu.cnm.deepdive.crapssimulator.R;
+import android.os.Bundle
+import androidx.preference.Preference
+import androidx.preference.PreferenceFragmentCompat
+import androidx.preference.SeekBarPreference
+import edu.cnm.deepdive.crapssimulator.R
+import kotlin.math.pow
 
 /**
  * Handles presentation of, and user interaction with, preference settings for simulation execution.
  */
-public class SettingsFragment extends PreferenceFragmentCompat {
+class SettingsFragment : PreferenceFragmentCompat() {
 
-  @Override
-  public void onCreatePreferences(Bundle savedInstanceState, String rootKey) {
-    setPreferencesFromResource(R.xml.preferences, rootKey);
-    setupSeekBar(R.string.batch_size_pref_key, R.string.batch_size_pref_summary);
-  }
+    override fun onCreatePreferences(savedInstanceState: Bundle?, rootKey: String?) {
+        setPreferencesFromResource(R.xml.preferences, rootKey)
+        setupSeekBar(R.string.batch_size_pref_key, R.string.batch_size_pref_summary)
+    }
 
-  private void setupSeekBar(int keyResId, int summaryResId) {
-    SeekBarPreference pref = findPreference(getString(keyResId));
-    //noinspection ConstantConditions
-    pref.setOnPreferenceChangeListener((preference, newValue) ->
-        updateSummary(preference, (Integer) newValue, summaryResId));
-    updateSummary(pref, pref.getValue(), summaryResId);
-  }
+    private fun setupSeekBar(keyResId: Int, summaryResId: Int) {
+        findPreference<SeekBarPreference>(getString(keyResId))!!.apply {
+            Preference.OnPreferenceChangeListener { preference: Preference, newValue: Any ->
+                updateSummary(preference, newValue as Int, summaryResId)
+            }
+                .also { it.onPreferenceChange(this, value) }
+                .also { onPreferenceChangeListener = it }
+        }
+    }
 
-  private boolean updateSummary(Preference preference, Integer newValue, int resId) {
-    int quantity = (int) Math.round(Math.pow(10, newValue));
-    String quantityString = getResources().getQuantityString(R.plurals.round_quantity, quantity);
-    preference.setSummary(getString(resId, quantity, quantityString));
-    return true;
-  }
-
+    private fun updateSummary(preference: Preference, newValue: Int, resId: Int): Boolean {
+        val quantity = 10.0
+            .pow(newValue.toDouble())
+            .toInt()
+        val quantityString = resources.getQuantityString(R.plurals.round_quantity, quantity)
+        preference.summary = getString(resId, quantity, quantityString)
+        return true
+    }
 }
