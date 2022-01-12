@@ -36,8 +36,8 @@ class CrapsFragment : Fragment() {
 
     private val actions: MutableMap<Int, Runnable> = HashMap()
     private var binding: FragmentCrapsBinding? = null
-    private lateinit var viewModel: CrapsViewModel
     private var running = false
+    private lateinit var viewModel: CrapsViewModel
     private lateinit var summaryFormat: String
     private lateinit var errorMessageFormat: String
 
@@ -47,18 +47,19 @@ class CrapsFragment : Fragment() {
     }
 
     override fun onCreateView(
-            inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
-        binding = FragmentCrapsBinding.inflate(inflater, container, false)
+            inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
         summaryFormat = getString(R.string.summary_format)
         errorMessageFormat = getString(R.string.error_message_format)
-        return binding?.root
+        return FragmentCrapsBinding.inflate(inflater, container, false)
+            .also { binding = it }
+            .root
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         viewModel = ViewModelProvider(this).get(CrapsViewModel::class.java).apply {
-            lifecycle.addObserver(this)
             val owner = viewLifecycleOwner
+            lifecycle.addObserver(this)
             snapshot.observe(owner) { updateDisplay(it) }
             running.observe(owner) { setRunning(it) }
             throwable.observe(owner) { showError(it) }
@@ -83,8 +84,9 @@ class CrapsFragment : Fragment() {
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         val handled = booleanArrayOf(true)
+        @Suppress("MoveLambdaOutsideParentheses")
         actions
-                .getOrDefault(item.itemId, Runnable { handled[0] = super.onOptionsItemSelected(item) })
+                .getOrDefault(item.itemId, { handled[0] = super.onOptionsItemSelected(item) })
                 .run()
         return handled[0]
     }
@@ -97,19 +99,22 @@ class CrapsFragment : Fragment() {
     private fun updateDisplay(snapshot: Snapshot) {
         val wins = snapshot.wins
         val rounds = snapshot.rounds
-        val winningPercentage = if (rounds > 0) 100.0 * wins / rounds else 0.toDouble()
+        val winningPercentage = if (rounds > 0) (100.0 * wins / rounds) else 0.toDouble()
         val resources = resources
         val winQuantity = resources.getQuantityString(R.plurals.win_quantity, wins.toInt())
         val roundQuantity = resources.getQuantityString(R.plurals.round_quantity, rounds.toInt())
         val adapter = SnapshotRollsAdapter(context, snapshot)
-        binding?.let {
-            it.summary.text = String.format(summaryFormat, wins, winQuantity, rounds, roundQuantity, winningPercentage)
+        binding!!.let {
+            it.summary.text = String.format(
+                summaryFormat,
+                wins, winQuantity, rounds, roundQuantity, winningPercentage
+            )
             it.rolls.adapter = adapter
         }
     }
 
     private fun showError(throwable: Throwable) {
-        binding?.let {
+        binding!!.let {
             Snackbar
                     .make(it.root, String.format(errorMessageFormat, throwable.message),
                             Snackbar.LENGTH_LONG)
@@ -135,7 +140,7 @@ class CrapsFragment : Fragment() {
     }
 
     private fun openSettings() {
-        binding?.let {
+        binding!!.let {
             Navigation
                     .findNavController(it.root)
                     .navigate(CrapsFragmentDirections.openSettings())
@@ -143,8 +148,11 @@ class CrapsFragment : Fragment() {
     }
 
     private fun openAbout() {
-        Navigation
-                .findNavController(binding!!.root)
+        binding!!.let {
+            Navigation
+                .findNavController(it.root)
                 .navigate(CrapsFragmentDirections.openAbout())
+        }
     }
+
 }
